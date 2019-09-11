@@ -1,0 +1,48 @@
+service: mqtt-to-sqs
+
+provider:
+  name: aws
+  runtime: python3.7
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  profile: ${opt:profile, 'default'}
+  timeout: 60
+
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - "sqs:SendMessage"
+      Resource: '*'
+    - Effect: 'Allow'
+      Action:
+        - "iot:*"
+      Resource: '*'
+
+package:
+  exclude:
+    - requirements.txt
+    - package.json
+    - package-lock.json
+
+functions:
+  mqtt-to-sqs:
+    handler: handler.handler
+    reservedConcurrency: 1
+    events:
+      - schedule: 
+        name: 'execute-mqtt-to-sqs'
+        description: 'Execute lambda mqtt-to-sqs'
+        rate: rate(1 minute)
+    environment:
+      IOT_ENDPOINT: 'YOUR-IOT-ENDPOINT'
+      IOT_TOPIC: 'YOUR-MQTT-TOPIC'
+      SQS_QUEUE: 'YOUT-SQS-QUEUE'
+      CA_FILE_PATH: 'certs/your-certificate.pem.crt'
+      CERT_KEY_PATH: 'certs/yout-certificate.key'
+
+plugins:
+  - serverless-python-requirements
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+  queueName: ${opt:queueName, 'YOUR-SQS-QUEUE'}
